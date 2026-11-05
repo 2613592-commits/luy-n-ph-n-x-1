@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSU! Coin Reflex - Game Phản Xạ Thu Thập Tiền Xu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;0,900;1,900&family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #f4f4f5;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-exo { font-family: 'Exo 2', sans-serif; }
+
+        canvas {
+            touch-action: none;
+            cursor: crosshair;
+            background: radial-gradient(circle at center, #18092c 0%, #05010d 100%);
+            box-shadow: 0 0 35px rgba(236, 72, 153, 0.25);
+        }
+
+        .neon-card {
+            background: rgba(18, 12, 38, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .neon-text-pink {
+            text-shadow: 0 0 10px rgba(236, 72, 153, 0.7), 0 0 20px rgba(236, 72, 153, 0.4);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .neon-text-yellow {
+            text-shadow: 0 0 10px rgba(234, 179, 8, 0.7), 0 0 20px rgba(234, 179, 8, 0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #3b0764; rounded: 3px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6">
+
+    <!-- Header & Title -->
+    <header class="max-w-7xl mx-auto w-full mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-cyan-400 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-pink-500/30 animate-pulse">
+                <i class="fa-solid fa-coins"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-exo font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400 bg-clip-text text-transparent">
+                    OSU! COIN REFLEX
+                </h1>
+                <p class="text-xs text-slate-400">Game Phản Xạ Nhịp Độ - Thu Thập Coin Chuẩn Thời Điểm</p>
+            </div>
+        </div>
+
+        <!-- System controls / sound status -->
+        <div class="flex items-center gap-3">
+            <button id="audioToggle" onclick="toggleAudio()" class="neon-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-volume-high text-pink-400" id="audioIcon"></i> <span id="audioText">Âm thanh: Bật</span>
+            </button>
+            <div class="neon-card px-3 py-1.5 rounded-xl text-xs font-mono text-cyan-400 border border-cyan-500/30" id="topFps">
+                FPS: 60
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+        
+        <!-- Cột Trái + Giữa: Game Play Arena (8 Cols) -->
+        <div class="lg:col-span-8 flex flex-col items-center">
+            
+            <!-- Dashboard Thanh Chỉ Số Game -->
+            <div class="w-full neon-card rounded-t-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 items-center border-b border-pink-500/20">
+                <!-- Điểm số -->
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">SCORE</span>
+                    <span id="scoreText" class="font-orbitron text-xl md:text-2xl font-bold text-pink-400 neon-text-pink">0</span>
+                </div>
+                <!-- Accuracy & Combo -->
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">ACCURACY / COMBO</span>
+                    <div class="flex items-baseline gap-2">
+                        <span id="accuracyText" class="font-orbitron text-lg text-cyan-400 font-bold">100.00%</span>
+                        <span id="comboText" class="font-orbitron text-xs text-yellow-400 font-bold">0x</span>
+                    </div>
+                </div>
+                <!-- Thanh Máu HP -->
+                <div class="col-span-2 sm:col-span-1 flex flex-col w-full">
+                    <div class="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                        <span>HEALTH (HP)</span>
+                        <span id="hpValText" class="text-emerald-400">100%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700">
+                        <div id="hpBar" class="bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 h-full w-full transition-all duration-200"></div>
+                    </div>
+                </div>
+                <!-- Nút Start/Pause -->
+                <div class="col-span-2 sm:col-span-1 flex justify-end">
+                    <button id="startBtn" onclick="startGame()" class="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-xs font-black font-orbitron px-5 py-2.5 rounded-xl shadow-lg shadow-pink-500/30 transition transform active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> BẮT ĐẦU
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Playing Area -->
+            <div class="relative w-full flex justify-center bg-slate-950 rounded-b-2xl overflow-hidden border border-t-0 border-pink-500/20">
+                <canvas id="gameCanvas" width="800" height="500" class="w-full h-auto max-h-[520px] rounded-b-2xl"></canvas>
+                
+                <!-- Countdown Overlay trước khi vào game -->
+                <div id="countdownOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-20">
+                    <span id="countdownText" class="font-orbitron text-8xl font-black text-pink-500 neon-text-pink animate-ping">3</span>
+                </div>
+
+                <!-- Game Over & Result Screen Overlay -->
+                <div id="gameOverOverlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
+                    <h2 id="resultTitle" class="font-orbitron text-4xl font-black text-pink-500 mb-2 neon-text-pink">GAME OVER</h2>
+                    <p class="text-slate-400 text-sm mb-4">Kết quả lượt chơi phản xạ nhịp độ OSU!</p>
+                    
+                    <!-- Bảng Rank & Chỉ số chi tiết -->
+                    <div class="neon-card p-6 rounded-2xl max-w-md w-full grid grid-cols-2 gap-4 mb-6 border border-pink-500/30">
+                        <div class="flex flex-col items-center justify-center border-r border-slate-700 pr-4">
+                            <span class="text-xs text-slate-400 font-bold mb-1">XẾP HẠNG</span>
+                            <span id="rankBadge" class="font-orbitron text-6xl font-black text-yellow-400 neon-text-yellow">S</span>
+                        </div>
+                        <div class="space-y-2 text-left text-xs font-mono">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Điểm số:</span>
+                                <span id="finalScore" class="text-pink-400 font-bold">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Độ chính xác:</span>
+                                <span id="finalAcc" class="text-cyan-400 font-bold">0%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Max Combo:</span>
+                                <span id="finalMaxCombo" class="text-yellow-400 font-bold">0x</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Perfect (300):</span>
+                                <span id="count300" class="text-emerald-400">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Great/Good:</span>
+                                <span id="count100" class="text-blue-400">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Miss:</span>
+                                <span id="countMiss" class="text-rose-500">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="startGame()" class="bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 hover:opacity-90 text-white font-orbitron font-bold py-3 px-8 rounded-xl transition transform hover:scale-105 shadow-xl shadow-pink-500/40">
+                        THỬ LẠI <i class="fa-solid fa-rotate-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hướng dẫn thao tác nhanh -->
+            <div class="w-full flex justify-between items-center text-xs text-slate-400 mt-2 px-2">
+                <span><i class="fa-solid fa-mouse text-pink-400 mr-1"></i> Click / Tap chính xác vào tâm Coin khi vòng tròn ngoài chạm viền.</span>
+                <span>Mẹo phím tắt: Nhấn <code class="bg-slate-800 text-pink-300 px-1.5 py-0.5 rounded border border-slate-700">Z</code> hoặc <code class="bg-slate-800 text-pink-300 px-1.5 py-0.5 rounded border border-slate-700">X</code> để click nhanh kiểu OSU!</span>
+            </div>
+        </div>
+
+        <!-- Cột Phải: Bảng Giải Thích Thuật Ngữ Game Trực Quan (4 Cols) -->
+        <div class="lg:col-span-4 space-y-3">
+            <h2 class="text-base font-orbitron font-bold text-slate-200 flex items-center gap-2 border-b border-pink-500/30 pb-2">
+                <i class="fa-solid fa-microchip text-pink-400"></i> NGUYÊN LÝ LẬP TRÌNH GAME
+            </h2>
+
+            <!-- Card 1: Tọa độ -->
+            <div class="neon-card p-3 rounded-xl border-l-4 border-cyan-400">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-xs text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-crosshairs"></i> 1. TỌA ĐỘ (Coordinates)</span>
+                    <span class="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800" id="liveMouseCoords">Cursor: (0,0)</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Xác định vị trí tâm nốt $<code class="text-cyan-300">(X_{coin}, Y_{coin})</code>$ và con trỏ chuột $<code class="text-cyan-300">(X_{mouse}, Y_{mouse})</code>$ chính xác từng Pixel trên hệ trục tọa độ 2D.
+                </p>
+            </div>
+
+            <!-- Card 2: Di chuyển -->
+            <div class="neon-card p-3 rounded-xl border-l-4 border-pink-500">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-xs text-pink-400 flex items-center gap-1.5"><i class="fa-solid fa-circle-notch animate-spin"></i> 2. DI CHUYỂN (Movement)</span>
+                    <span class="text-[10px] font-mono bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-800" id="liveApproach">Approach: 0.00x</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Di chuyển co dãn mượt mà của vòng **Approach Circle** từ bán kính lớn thu nhỏ dần về tâm Coin theo tốc độ AR (Approach Rate).
+                </p>
+            </div>
+
+            <!-- Card 3: Ngẫu nhiên -->
+            <div class="neon-card p-3 rounded-xl border-l-4 border-yellow-400">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-xs text-yellow-400 flex items-center gap-1.5"><i class="fa-solid fa-dice"></i> 3. NGẪU NHIÊN (Random)</span>
+                    <span class="text-[10px] font-mono bg-yellow-950 text-yellow-300 px-2 py-0.5 rounded border border-yellow-800" id="liveSpawnType">Type: Standard</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Sử dụng <code class="text-yellow-300">Math.random()</code> sinh ngẫu nhiên tọa độ xuất hiện, khoảng thời gian chờ (delay) và chủng loại Coin (Normal / Golden 300 / Bomb Coin).
+                </p>
+            </div>
+
+            <!-- Card 4: Va chạm -->
+            <div class="neon-card p-3 rounded-xl border-l-4 border-rose-500">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-xs text-rose-400 flex items-center gap-1.5"><i class="fa-solid fa-bullseye"></i> 4. VA CHẠM (Collision)</span>
+                    <span class="text-[10px] font-mono bg-rose-950 text-rose-300 px-2 py-0.5 rounded border border-rose-800" id="liveHitStatus">Status: Ready</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Tính khoảng cách Euclidean $d = \sqrt{\Delta x^2 + \Delta y^2}$. Va chạm hợp lệ khi $d \le R_{coin}$. Độ chính xác timing quyết định điểm 300, 100, 50 hoặc Miss.
+                </p>
+            </div>
+
+            <!-- Card 5: Đồng bộ -->
+            <div class="neon-card p-3 rounded-xl border-l-4 border-purple-400">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-xs text-purple-400 flex items-center gap-1.5"><i class="fa-solid fa-sliders"></i> 5. ĐỒNG BỘ (Sync)</span>
+                    <span class="text-[10px] font-mono bg-purple-950 text-purple-300 px-2 py-0.5 rounded border border-purple-800" id="liveActiveCircles">Targets: 0 active</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Đồng bộ hóa nhịp tim Game Loop bằng `requestAnimationFrame`, kết hợp tạo phản hồi âm thanh Web Audio API (Hitsound) tức thì không trễ (Zero-latency).
+                </p>
+            </div>
+
+            <!-- Bảng ghi nhận Lịch sử Hit mới nhất -->
+            <div class="neon-card p-3 rounded-xl border border-slate-800">
+                <span class="text-xs font-bold text-slate-400 block mb-2"><i class="fa-solid fa-list-check text-cyan-400"></i> Lịch Sử Nhấp Cú Đánh (Hit Log)</span>
+                <div id="hitLogContainer" class="space-y-1.5 max-h-24 overflow-y-auto pr-1 text-[11px] font-mono">
+                    <div class="text-slate-500 italic">Sẵn sàng bấm Bắt đầu để chơi...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Script Game Logic (Vanilla JS + Web Audio API) -->
+    <script>
+        // --- 1. KHỞI TẠO ĐỐI TƯỢNG VÀ BIẾN TOÀN CỤC ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Elements UI
+        const scoreText = document.getElementById('scoreText');
+        const accuracyText = document.getElementById('accuracyText');
+        const comboText = document.getElementById('comboText');
+        const hpBar = document.getElementById('hpBar');
+        const hpValText = document.getElementById('hpValText');
+        const topFps = document.getElementById('topFps');
+
+        // Technical Log Elements
+        const liveMouseCoords = document.getElementById('liveMouseCoords');
+        const liveApproach = document.getElementById('liveApproach');
+        const liveSpawnType = document.getElementById('liveSpawnType');
+        const liveHitStatus = document.getElementById('liveHitStatus');
+        const liveActiveCircles = document.getElementById('liveActiveCircles');
+        const hitLogContainer = document.getElementById('hitLogContainer');
+
+        // Overlay & Buttons
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
+        const startBtn = document.getElementById('startBtn');
+
+        // Dynamic Canvas Resize & DPI Scaling
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game State Variables
+        let isPlaying = false;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let hp = 100;
+        let totalHits = 0;
+        let totalPossibleScore = 0;
+        let earnedScorePoints = 0;
+
+        let hit300Count = 0;
+        let hit100Count = 0;
+        let hitMissCount = 0;
+
+        let activeCircles = [];
+        let particles = [];
+        let hitEffects = [];
+
+        let mousePos = { x: canvas.width / 2, y: canvas.height / 2 };
+        let animationFrameId = null;
+        let lastSpawnTime = 0;
+        let spawnInterval = 750; // ms per circle spawn
+        let circleLifeTime = 1200; // ms approach time (AR)
+        let coinRadius = 32;
+
+        let lastFrameTimestamp = performance.now();
+        let fpsCounter = 60;
+
+        // Sound Settings (Web Audio API Synthesizer)
+        let audioEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playHitsound(type = 'hit') {
+            if (!audioEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'hit300') {
+                    // Woodblock / Pop High pitch sound kiểu OSU!
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'hit100') {
+                    // Mid Pitch
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.07);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                } else if (type === 'gold') {
+                    // Coin Pickup Chiming sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(987.77, now); // B5
+                    osc.frequency.setValueAtTime(1318.51, now + 0.05); // E6
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'miss') {
+                    // Low error buzz
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.linearRampToValueAtTime(60, now + 0.15);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                }
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audioText').innerText = audioEnabled ? "Âm thanh: Bật" : "Âm thanh: Tắt";
+            document.getElementById('audioIcon').className = audioEnabled ? "fa-solid fa-volume-high text-pink-400" : "fa-solid fa-volume-xmark text-slate-500";
+        }
+
+        // --- 2. THEO DÕI TỌA ĐỘ CON TRỎ & BÀN PHÍM ---
+        function updateMousePos(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = clientX - rect.left;
+            mousePos.y = clientY - rect.top;
+            liveMouseCoords.innerText = `Cursor: (${Math.round(mousePos.x)}, ${Math.round(mousePos.y)})`;
+        }
+
+        canvas.addEventListener('mousemove', (e) => updateMousePos(e.clientX, e.clientY));
+        canvas.addEventListener('pointerdown', (e) => {
+            initAudio();
+            updateMousePos(e.clientX, e.clientY);
+            processHit(mousePos.x, mousePos.y);
+        });
+
+        // Hỗ trợ phím Z / X chuẩn phong cách OSU! Keyboard Tapping
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'z' || e.key === 'Z' || e.key === 'x' || e.key === 'X') {
+                if (isPlaying) {
+                    initAudio();
+                    processHit(mousePos.x, mousePos.y);
+                }
+            }
+        });
+
+        // --- 3. NGẪU NHIÊN: SPAWN CIRCLES & COINS ---
+        function spawnTargetCircle() {
+            const margin = coinRadius * 2;
+            const x = margin + Math.random() * (canvas.width - margin * 2);
+            const y = margin + Math.random() * (canvas.height - margin * 2);
+
+            // Ngẫu nhiên loại nốt: Normal (80%), Gold (15%), Bomb (5%)
+            const randType = Math.random();
+            let type = 'normal';
+            let color = '#ec4899'; // Neon Pink
+
+            if (randType > 0.85) {
+                type = 'gold';
+                color = '#eab308'; // Gold Yellow
+            } else if (randType < 0.05) {
+                type = 'bomb';
+                color = '#ef4444'; // Red Bomb
+            }
+
+            const newCircle = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                radius: coinRadius,
+                spawnTime: performance.now(),
+                lifeTime: circleLifeTime,
+                type: type,
+                color: color,
+                number: (totalHits % 9) + 1
+            };
+
+            activeCircles.push(newCircle);
+            liveSpawnType.innerText = `Type: ${type.toUpperCase()}`;
+        }
+
+        // --- 4. VA CHẠM & TÍNH ĐIỂM (COLLISION & TIMING) ---
+        function processHit(clickX, clickY) {
+            if (!isPlaying || activeCircles.length === 0) return;
+
+            const now = performance.now();
+            let hitFound = false;
+
+            // Kiểm tra theo thứ tự nốt xuất hiện trước (First-in-first-out)
+            for (let i = 0; i < activeCircles.length; i++) {
+                const c = activeCircles[i];
+                
+                // Thuật toán va chạm khoảng cách Euclidean: d = sqrt((x2-x1)^2 + (y2-y1)^2)
+                const dx = clickX - c.x;
+                const dy = clickY - c.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Kiểm tra xem vị trí nhấp có nằm trong bán kính Coin không
+                if (distance <= c.radius * 1.2) {
+                    hitFound = true;
+                    
+                    // Tính độ chính xác của Timing dựa trên độ thu nhỏ của Approach Circle
+                    const elapsed = now - c.spawnTime;
+                    const progress = elapsed / c.lifeTime; // Từ 0.0 -> 1.0 (1.0 là trùng khít viền)
+                    const timingDiff = Math.abs(1.0 - progress);
+
+                    if (c.type === 'bomb') {
+                        // Nhấp nhầm nốt Bomb -> Phạt nặng
+                        triggerHitResult(c, 'MISS', 0, -25, 'bomb');
+                    } else if (timingDiff <= 0.25) {
+                        // PERFECT HIT 300
+                        const points = c.type === 'gold' ? 600 : 300;
+                        triggerHitResult(c, '300', points, 4, c.type === 'gold' ? 'gold' : 'hit300');
+                    } else if (timingDiff <= 0.45) {
+                        // GREAT HIT 100
+                        triggerHitResult(c, '100', 100, 2, 'hit100');
+                    } else {
+                        // MEH / BAD 50
+                        triggerHitResult(c, '50', 50, 1, 'hit100');
+                    }
+
+                    // Xóa nốt đã click khỏi mảng active
+                    activeCircles.splice(i, 1);
+                    break;
+                }
+            }
+
+            if (!hitFound) {
+                liveHitStatus.innerText = `Status: Click Miss (${Math.round(clickX)},${Math.round(clickY)})`;
+            }
+        }
+
+        function triggerHitResult(circle, rating, scoreAdd, hpChange, soundType) {
+            totalHits++;
+            totalPossibleScore += 300;
+
+            if (rating === '300') {
+                score += scoreAdd + (combo * 10);
+                earnedScorePoints += 300;
+                combo++;
+                hit300Count++;
+                spawnParticles(circle.x, circle.y, circle.color, 12);
+            } else if (rating === '100' || rating === '50') {
+                score += scoreAdd + (combo * 5);
+                earnedScorePoints += (rating === '100' ? 100 : 50);
+                combo++;
+                hit100Count++;
+                spawnParticles(circle.x, circle.y, circle.color, 6);
+            } else { // MISS / BOMB
+                combo = 0;
+                hitMissCount++;
+                spawnParticles(circle.x, circle.y, '#ef4444', 15);
+            }
+
+            if (combo > maxCombo) maxCombo = combo;
+
+            // Cập nhật HP
+            hp = Math.max(0, Math.min(100, hp + hpChange));
+            updateHPBar();
+
+            // Phát âm thanh HitSound
+            playHitsound(soundType);
+
+            // Thêm hiệu ứng hiển thị chữ điểm (300, 100, MISS)
+            hitEffects.push({
+                x: circle.x,
+                y: circle.y,
+                text: rating,
+                color: rating === '300' ? '#34d399' : (rating === '100' ? '#60a5fa' : '#f43f5e'),
+                alpha: 1.0,
+                scale: 0.8,
+                spawnTime: performance.now()
+            });
+
+            // Ghi log kỹ thuật bên cột phải
+            addHitLog(rating, circle.x, circle.y);
+            liveHitStatus.innerText = `Status: ${rating} (${Math.round(circle.x)},${Math.round(circle.y)})`;
+
+            updateStatsUI();
+
+            // Kiểm tra thua cuộc nếu cạn máu HP
+            if (hp <= 0) {
+                endGame(false);
+            }
+        }
+
+        function updateHPBar() {
+            hpBar.style.width = `${hp}%`;
+            hpValText.innerText = `${Math.round(hp)}%`;
+            if (hp < 30) {
+                hpBar.className = "bg-rose-600 h-full w-full transition-all duration-200 animate-pulse";
+            } else {
+                hpBar.className = "bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 h-full w-full transition-all duration-200";
+            }
+        }
+
+        function updateStatsUI() {
+            scoreText.innerText = score.toLocaleString();
+            comboText.innerText = `${combo}x`;
+            
+            const acc = totalPossibleScore > 0 ? (earnedScorePoints / totalPossibleScore) * 100 : 100;
+            accuracyText.innerText = `${acc.toFixed(2)}%`;
+        }
+
+        function addHitLog(rating, x, y) {
+            const logItem = document.createElement('div');
+            logItem.className = "flex justify-between items-center bg-slate-900/80 px-2 py-1 rounded border border-slate-800";
+            
+            let badgeColor = "text-emerald-400";
+            if (rating === '100') badgeColor = "text-blue-400";
+            if (rating === 'MISS') badgeColor = "text-rose-500 font-bold";
+
+            logItem.innerHTML = `
+                <span class="${badgeColor}">${rating}</span>
+                <span class="text-slate-400">At (${Math.round(x)}, ${Math.round(y)})</span>
+            `;
+
+            hitLogContainer.insertBefore(logItem, hitLogContainer.firstChild);
+            if (hitLogContainer.children.length > 5) {
+                hitLogContainer.removeChild(hitLogContainer.lastChild);
+            }
+        }
+
+        // --- 5. ĐỒNG BỘ: HIỆU ỨNG HẠT PARTICLE & ANIMAION LOOP ---
+        function spawnParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1 + Math.random() * 5;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 2 + Math.random() * 3,
+                    color: color,
+                    alpha: 1.0,
+                    life: 0.03 + Math.random() * 0.04
+                });
+            }
+        }
+
+        // VÒNG LẶP RENDER DÙNG REQUESTANIMATIONFRAME (ĐỒNG BỘ)
+        function draw(timestamp) {
+            if (!isPlaying) return;
+
+            // Tính FPS
+            const delta = timestamp - lastFrameTimestamp;
+            lastFrameTimestamp = timestamp;
+            fpsCounter = Math.round(1000 / delta);
+            if (fpsCounter && isFinite(fpsCounter)) {
+                topFps.innerText = `FPS: ${fpsCounter}`;
+            }
+
+            // Clear Background
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Tự động sinh Target nốt mới theo chu kỳ spawnInterval
+            if (timestamp - lastSpawnTime > spawnInterval) {
+                spawnTargetCircle();
+                lastSpawnTime = timestamp;
+
+                // Tăng dần độ khó theo thời gian (giảm thời gian chờ spawn)
+                if (spawnInterval > 400) spawnInterval -= 5;
+            }
+
+            const now = performance.now();
+
+            // 1. DỰNG NỐT TẢI VÀ VÒNG THU NỎ APPROACH CIRCLE (DI CHUYỂN & ĐỒNG BỘ)
+            for (let i = activeCircles.length - 1; i >= 0; i--) {
+                const c = activeCircles[i];
+                const elapsed = now - c.spawnTime;
+                const progress = elapsed / c.lifeTime; // 0.0 -> 1.0
+
+                // Kiểm tra nếu hết thời hạn sống mà chưa click -> tính MISS
+                if (progress >= 1.0) {
+                    if (c.type !== 'bomb') {
+                        triggerHitResult(c, 'MISS', 0, -12, 'miss');
+                    }
+                    activeCircles.splice(i, 1);
+                    continue;
+                }
+
+                // Tỷ lệ co rút của Approach Circle từ 3.0x -> 1.0x bán kính nốt
+                const approachScale = 3.5 - (progress * 2.5);
+                const currentApproachRadius = c.radius * approachScale;
+
+                // Cập nhật log chi tiết
+                if (i === activeCircles.length - 1) {
+                    liveApproach.innerText = `Approach: ${approachScale.toFixed(2)}x`;
+                }
+
+                // Vẽ vòng co rút ngoài (Approach Circle)
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, Math.max(c.radius, currentApproachRadius), 0, Math.PI * 2);
+                ctx.strokeStyle = c.color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = c.color;
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Vẽ Nốt Tâm chính (Target Hit Circle / Coin)
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+                ctx.fillStyle = c.type === 'gold' ? '#f59e0b' : (c.type === 'bomb' ? '#b91c1c' : '#831843');
+                ctx.fill();
+                ctx.strokeStyle = c.color;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Vẽ icon / Con số bên trong nốt
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 16px "Orbitron", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (c.type === 'gold') {
+                    ctx.fillText('★', c.x, c.y);
+                } else if (c.type === 'bomb') {
+                    ctx.fillText('💣', c.x, c.y);
+                } else {
+                    ctx.fillText(c.number, c.x, c.y);
+                }
+            }
+
+            liveActiveCircles.innerText = `Targets: ${activeCircles.length} active`;
+
+            // 2. VẼ HIỆU ỨNG HẠT VỠ (PARTICLES)
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.life;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // 3. VẼ NỔ HIỂN THỊ ĐIỂM (300 / 100 / MISS TEXT)
+            for (let i = hitEffects.length - 1; i >= 0; i--) {
+                const h = hitEffects[i];
+                const age = now - h.spawnTime;
+
+                if (age > 600) {
+                    hitEffects.splice(i, 1);
+                    continue;
+                }
+
+                h.y -= 0.8;
+                h.alpha = 1.0 - (age / 600);
+                h.scale += 0.01;
+
+                ctx.save();
+                ctx.font = '900 22px "Orbitron", sans-serif';
+                ctx.fillStyle = h.color;
+                ctx.globalAlpha = h.alpha;
+                ctx.textAlign = 'center';
+                ctx.shadowColor = h.color;
+                ctx.shadowBlur = 8;
+                ctx.fillText(h.text, h.x, h.y);
+                ctx.restore();
+            }
+
+            // 4. VẼ TÂM TRỎ CHUỘT CUSTOM CURSOR
+            ctx.beginPath();
+            ctx.arc(mousePos.x, mousePos.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#06b6d4';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Tiếp tục vòng lặp đồng bộ khung hình
+            animationFrameId = requestAnimationFrame(draw);
+        }
+
+        // --- 6. KHỞI ĐỘNG VÀ KẾT THÚC GAME ---
+        function startGame() {
+            initAudio();
+
+            // Reset variables
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            hp = 100;
+            totalHits = 0;
+            totalPossibleScore = 0;
+            earnedScorePoints = 0;
+            hit300Count = 0;
+            hit100Count = 0;
+            hitMissCount = 0;
+            spawnInterval = 750;
+
+            activeCircles = [];
+            particles = [];
+            hitEffects = [];
+
+            updateStatsUI();
+            updateHPBar();
+
+            gameOverOverlay.classList.add('hidden');
+            startBtn.disabled = true;
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Countdown 3... 2... 1...
+            countdownOverlay.classList.remove('hidden');
+            let count = 3;
+            countdownText.innerText = count;
+
+            const countInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownText.innerText = count;
+                } else {
+                    clearInterval(countInterval);
+                    countdownOverlay.classList.add('hidden');
+                    
+                    // Bắt đầu game loop
+                    isPlaying = true;
+                    lastSpawnTime = performance.now();
+                    lastFrameTimestamp = performance.now();
+                    animationFrameId = requestAnimationFrame(draw);
+                }
+            }, 600);
+        }
+
+        function endGame(isVictory = false) {
+            isPlaying = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            startBtn.disabled = false;
+            startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // Tính toán Rank xếp hạng
+            const acc = totalPossibleScore > 0 ? (earnedScorePoints / totalPossibleScore) * 100 : 0;
+            let rank = 'F';
+            let rankColor = 'text-rose-600';
+
+            if (acc >= 95) { rank = 'S'; rankColor = 'text-yellow-400 neon-text-yellow'; }
+            else if (acc >= 85) { rank = 'A'; rankColor = 'text-emerald-400'; }
+            else if (acc >= 75) { rank = 'B'; rankColor = 'text-cyan-400'; }
+            else if (acc >= 60) { rank = 'C'; rankColor = 'text-purple-400'; }
+
+            // Ghi kết quả lên Overlay
+            document.getElementById('rankBadge').innerText = rank;
+            document.getElementById('rankBadge').className = `font-orbitron text-6xl font-black ${rankColor}`;
+            document.getElementById('finalScore').innerText = score.toLocaleString();
+            document.getElementById('finalAcc').innerText = `${acc.toFixed(2)}%`;
+            document.getElementById('finalMaxCombo').innerText = `${maxCombo}x`;
+            document.getElementById('count300').innerText = hit300Count;
+            document.getElementById('count100').innerText = hit100Count;
+            document.getElementById('countMiss').innerText = hitMissCount;
+
+            gameOverOverlay.classList.remove('hidden');
+        }
+
+        // Vẽ sẵn nền Canvas ban đầu
+        ctx.fillStyle = '#09090b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
